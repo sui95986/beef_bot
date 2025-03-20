@@ -1,7 +1,3 @@
-use serde_json::Value;
+pub mod handle_welcome_message;
 
-pub fn handle_welcome_message(json: &Value) {
-    let session_id = &json["payload"]["session"]["id"];
-    println!("The session Id is: {}", session_id);
-}
-
+pub use handle_welcome_message::handle as handle_welcome_message;
