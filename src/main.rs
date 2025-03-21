@@ -1,11 +1,10 @@
+mod deciders;
 mod handlers;
 mod setup;
 
-use crate::handlers::handle_welcome_message;
+use crate::deciders::message_decider;
 use dotenv::dotenv;
 use futures_util::StreamExt;
-use handlers::handle_chat_message;
-use serde_json::Value;
 use setup::validate_oauth_token;
 // use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio_tungstenite::connect_async;
@@ -28,18 +27,7 @@ async fn main() {
     let read_future = read.for_each(|message| async {
         match message {
             Ok(msg) => {
-                let data_str = msg.to_text().expect("Fatal error parsing message to text");
-                let json: Value = serde_json::from_str(data_str).unwrap_or(Value::Null);
-
-                if json != Value::Null {
-                    let message_type = &json["metadata"]["message_type"];
-                    if message_type == &Value::String("session_welcome".to_string()) {
-                        println!("received welcome message!");
-                        handle_welcome_message(&json).await;
-                    } else if message_type == "notification" {
-                        handle_chat_message(&json).await;
-                    }
-                }
+                message_decider::decide(msg).await;
             }
             Err(e) => {
                 eprintln!("WebSocket error: {}", e);

@@ -1,4 +1,17 @@
 ## Todos
+* https://github.com/snapview/tokio-tungstenite/issues/101
+* The above link states that if there is no activity for a 
+    Then there will be a disconnect.  We should have the
+    bot periodically attempt sending a message to keep the
+    connection alive.
+* Have reconnect logic in place (This can be tested by
+    removing the handle_welcome_message call so twitch
+    themselves kills the connection after only 10 session_id
+    or whatever the time is)
+* Look up the other messages that must be handle
+* 
+
+
 CLIENT_ID
 CLIENT_SECRET
 BOT_USER_ID
