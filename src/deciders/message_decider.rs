@@ -1,4 +1,5 @@
 use crate::handlers::handle_chat_message;
+use crate::handlers::handle_unknown_message;
 use crate::handlers::handle_welcome_message;
 use serde_json::Value;
 use tungstenite::Message;
@@ -15,6 +16,10 @@ pub async fn decide(msg: Message) {
             handle_welcome_message(&json).await;
         } else if message_type == "notification" {
             handle_chat_message(&json).await;
+        } else {
+            handle_unknown_message(&json).await;
         }
+    } else {
+        println!("Failed to parse incoming message into json: {}", msg);
     }
 }

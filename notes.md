@@ -1,15 +1,7 @@
 ## Todos
-* https://github.com/snapview/tokio-tungstenite/issues/101
-* The above link states that if there is no activity for a 
-    Then there will be a disconnect.  We should have the
-    bot periodically attempt sending a message to keep the
-    connection alive.
-* Have reconnect logic in place (This can be tested by
-    removing the handle_welcome_message call so twitch
-    themselves kills the connection after only 10 session_id
-    or whatever the time is)
-* Look up the other messages that must be handle
-* 
+* Send a chat message as the bot
+* Look up the other messages that must be handled
+
 
 
 CLIENT_ID
@@ -45,7 +37,7 @@ HAVE: client id and client secret;
 does subscription type require user authentication?
 yes -- with scopes user:read:chat and channel:bot
 
-https://id.twitch.tv/oauth2/authorize?client_id=53pnw9ubh3rnlityfgoztyvlfr9fd3&redirect_uri=https%3A%2F%2Flocalhost:8080&response_type=token&scope=user:read:chat%20channel:bot%20user:write:chat
+https://id.twitch.tv/oauth2/authorize?client_id=htzvetxwhqrl84oafo8rzi25iyq3io&redirect_uri=https%3A%2F%2Flocalhost:8080&response_type=token&scope=user:read:chat%20user:write:chat%20channel:bot%20user:bot
 
 -----------api
 
