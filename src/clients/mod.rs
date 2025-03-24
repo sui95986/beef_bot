@@ -60,19 +60,18 @@ impl TwitchApiClient {
         &self,
         session_id: &Value,
     ) -> Result<reqwest::Response, reqwest::Error> {
-        let request_body = self.get_request_body(&session_id);
-        let result = self
-            .reqwest_client
+        let request_body = self.get_subscribe_to_chat_request_body(session_id);
+
+        self.reqwest_client
             .post("https://api.twitch.tv/helix/eventsub/subscriptions")
             .bearer_auth(&self.api_token)
             .header("Client-Id", &self.client_id)
             .json(&request_body)
             .send()
-            .await;
-        result
+            .await
     }
 
-    fn get_request_body(&self, session_id: &Value) -> Value {
+    fn get_subscribe_to_chat_request_body(&self, session_id: &Value) -> Value {
         let json = json!({
             "type": "channel.chat.message",
             "version": "1",

@@ -8,7 +8,7 @@ pub async fn handle(json: &Value) {
 
     let client = TwitchApiClient::new();
 
-    let result = client.subscribe_to_chat_events(&session_id);
+    let result = client.subscribe_to_chat_events(session_id);
 
     let response = result
         .await
