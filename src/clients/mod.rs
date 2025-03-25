@@ -1,4 +1,4 @@
-use crate::deciders::message_decider;
+use crate::deciders::message_decider::MessageDecider;
 use crate::setup::validate_oauth_token;
 use dotenv_codegen::dotenv;
 use futures_util::StreamExt;
@@ -6,7 +6,10 @@ use serde_json::{Value, json};
 use tokio_tungstenite::connect_async;
 use tungstenite::client::IntoClientRequest;
 
-pub struct WebSocketClient;
+pub struct WebSocketClient {
+    message_decider: MessageDecider,
+}
+
 pub struct TwitchApiClient {
     api_token: String,
     client_id: String,
@@ -16,11 +19,11 @@ pub struct TwitchApiClient {
 }
 
 impl WebSocketClient {
-    pub fn new() -> WebSocketClient {
-        WebSocketClient {}
+    pub fn new(message_decider: MessageDecider) -> WebSocketClient {
+        WebSocketClient { message_decider }
     }
 
-    pub async fn start(self) {
+    pub async fn start(&self) {
         validate_oauth_token().await;
         let url = "wss://eventsub.wss.twitch.tv/ws?keepalive_timeout_seconds=30"
             .into_client_request()
@@ -33,7 +36,7 @@ impl WebSocketClient {
         let read_future = read.for_each(|message| async {
             match message {
                 Ok(msg) => {
-                    message_decider::decide(msg).await;
+                    self.message_decider.decide(msg).await;
                 }
                 Err(e) => {
                     eprintln!("WebSocket error: {}", e);
@@ -83,6 +86,31 @@ impl TwitchApiClient {
                 "method": "websocket",
                 "session_id": session_id
             }
+        });
+        json
+    }
+
+    pub async fn send_chat_message(&self, arg: String) {
+        println!("Sending chat message: {}", arg);
+        let request_body = self.get_send_chat_message_request_body(arg);
+        if let Err(e) = self
+            .reqwest_client
+            .post("https://api.twitch.tv/helix/chat/messages")
+            .bearer_auth(&self.api_token)
+            .header("Client-Id", &self.client_id)
+            .json(&request_body)
+            .send()
+            .await
+        {
+            eprintln!("Error sending chat message {}", e);
+        }
+    }
+
+    fn get_send_chat_message_request_body(&self, chat_message: String) -> Value {
+        let json = json!({
+            "broadcaster_id": self.broadcaster_id,
+            "sender_id": self.bot_user_id,
+            "message": chat_message,
         });
         json
     }
