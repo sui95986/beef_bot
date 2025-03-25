@@ -1,17 +1,18 @@
-use crate::clients::TwitchApiClient;
-use crate::handlers::handle_chat_message;
+use crate::handlers::ChatMessageHandler;
 use crate::handlers::handle_unknown_message;
 use crate::handlers::handle_welcome_message;
 use serde_json::Value;
 use tungstenite::Message;
 
 pub struct MessageDecider {
-    twitch_api_client: TwitchApiClient,
+    chat_message_handler: ChatMessageHandler,
 }
 
 impl MessageDecider {
-    pub fn new(twitch_api_client: TwitchApiClient) -> MessageDecider {
-        MessageDecider { twitch_api_client }
+    pub fn new(chat_message_handler: ChatMessageHandler) -> MessageDecider {
+        MessageDecider {
+            chat_message_handler,
+        }
     }
 
     pub async fn decide(&self, msg: Message) {
@@ -25,7 +26,7 @@ impl MessageDecider {
                 println!("received welcome message!");
                 handle_welcome_message(&json).await;
             } else if message_type == "notification" {
-                handle_chat_message(&json, &self.twitch_api_client).await;
+                self.chat_message_handler.handle(&json).await;
             } else {
                 handle_unknown_message(&json).await;
             }

@@ -1,13 +1,56 @@
 use serde_json::Value;
 
 use crate::clients::TwitchApiClient;
+use dotenv_codegen::dotenv;
 
-pub async fn handle(json: &Value, twitch_api_client: &TwitchApiClient) {
-    let event = &json["payload"]["event"];
-    let chatter = &event["chatter_user_name"].as_str().unwrap();
-    let message = &event["message"]["text"].as_str().unwrap();
-    println!("{}: {}", chatter, message);
-    twitch_api_client
-        .send_chat_message(String::from("Hello world"))
-        .await;
+pub struct ChatMessageHandler {
+    twitch_api_client: TwitchApiClient,
+}
+
+impl ChatMessageHandler {
+    pub fn new(twitch_api_client: TwitchApiClient) -> ChatMessageHandler {
+        ChatMessageHandler { twitch_api_client }
+    }
+
+    pub async fn handle(&self, json: &Value) {
+        let bot_user_id = &dotenv!("BOT_USER_ID");
+        let event = &json["payload"]["event"];
+        let chatter = &event["chatter_user_name"].as_str().unwrap();
+        let chatter_user_id = &event["chatter_user_id"].as_str().unwrap();
+        let message = &event["message"]["text"].as_str().unwrap();
+        println!("{}: {}", chatter, message);
+        if chatter_user_id != bot_user_id && message.starts_with("!") {
+            let string_message = String::from(*message);
+            let mut parts = string_message.splitn(2, " ");
+            let cmd = parts.next().unwrap_or("");
+            let message = parts.next().unwrap_or("");
+            self.handle_command(cmd, message, chatter).await;
+        };
+    }
+
+    pub async fn handle_command(&self, cmd: &str, message: &str, chatter_user_name: &str) {
+        match cmd {
+            "!love" => {
+                self.twitch_api_client
+                    .send_chat_message(format!(
+                        "Hi @{}, I love you and your beef cheeks",
+                        chatter_user_name
+                    ))
+                    .await;
+            }
+            "!test" => {
+                self.twitch_api_client
+                    .send_chat_message(format!(
+                        "{} typed the command: {} with rest of command: {}",
+                        chatter_user_name, cmd, message
+                    ))
+                    .await;
+            }
+            _ => {
+                self.twitch_api_client
+                    .send_chat_message("unknown command".to_string())
+                    .await;
+            }
+        }
+    }
 }
