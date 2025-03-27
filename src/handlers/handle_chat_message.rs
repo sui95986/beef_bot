@@ -13,14 +13,14 @@ impl ChatMessageHandler {
     }
 
     pub async fn handle(&self, json: &Value) {
-        let bot_user_id = &dotenv!("BOT_USER_ID");
+        let bot_user_id = dotenv!("BOT_USER_ID");
         let event = &json["payload"]["event"];
-        let chatter = &event["chatter_user_name"].as_str().unwrap();
-        let chatter_user_id = &event["chatter_user_id"].as_str().unwrap();
-        let message = &event["message"]["text"].as_str().unwrap();
+        let chatter = event["chatter_user_name"].as_str().unwrap();
+        let chatter_user_id = event["chatter_user_id"].as_str().unwrap();
+        let message = event["message"]["text"].as_str().unwrap();
         println!("{}: {}", chatter, message);
         if chatter_user_id != bot_user_id && message.starts_with("!") {
-            let string_message = String::from(*message);
+            let string_message = String::from(message);
             let mut parts = string_message.splitn(2, " ");
             let cmd = parts.next().unwrap_or("");
             let message = parts.next().unwrap_or("");
@@ -44,6 +44,11 @@ impl ChatMessageHandler {
                         "{} typed the command: {} with rest of command: {}",
                         chatter_user_name, cmd, message
                     ))
+                    .await;
+            }
+            "!analdischarge" => {
+                self.twitch_api_client
+                    .send_chat_message("You should probably put on a diaper".to_string())
                     .await;
             }
             _ => {

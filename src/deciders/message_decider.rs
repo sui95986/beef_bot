@@ -30,7 +30,7 @@ impl MessageDecider {
             } else {
                 handle_unknown_message(&json).await;
             }
-        } else {
+        } else if !msg.to_string().contains("session_keepalive") {
             println!("Failed to parse incoming message into json: {}", msg);
         }
     }
