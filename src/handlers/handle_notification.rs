@@ -23,12 +23,19 @@ impl NotificationHandler {
         let chatter_user_id = event["chatter_user_id"].as_str().unwrap();
         let message = event["message"]["text"].as_str().unwrap();
         println!("{}: {}", chatter, message);
-        if chatter_user_id != bot_user_id && message.starts_with("!") {
-            let string_message = String::from(message);
-            let mut parts = string_message.splitn(2, " ");
-            let cmd = parts.next().unwrap_or("");
-            let message = parts.next().unwrap_or("");
-            self.handle_command(cmd, message, chatter).await;
+        if chatter_user_id != bot_user_id {
+            if message.starts_with("!") {
+                let string_message = String::from(message);
+                let mut parts = string_message.splitn(2, " ");
+                let cmd = parts.next().unwrap_or("");
+                let message = parts.next().unwrap_or("");
+                self.handle_command(cmd, message, chatter).await;
+            } else {
+                let response = "Nothing".to_string();
+                // let response = self.brain.respond(chatter, message).await;
+                println!("Got the response sending it over chat: {}", response);
+                // self.twitch_api_client.send_chat_message(response).await;
+            }
         };
     }
 
@@ -65,8 +72,9 @@ impl NotificationHandler {
     }
 
     pub async fn handle_ad_break_begin(&self, json: &Value) {
+        let duration = &json["payload"]["event"]["duration_seconds"];
         self.twitch_api_client
-            .send_chat_message("Ad break starting!".to_owned())
+            .send_chat_message(format!("{} second ad break starting!", duration))
             .await;
         println!("{}", json);
     }

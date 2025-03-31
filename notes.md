@@ -1,3 +1,7 @@
+{"metadata":{"message_id":"jfYtFRGrher-4dnd-WeRXeq6vDhGkrWYDF3JkT_iX0k=","message_type":"notification","message_timestamp":"2025-03-31T19:19:53.06543104Z","subscription_type":"channel.ad_break.begin","subscrip tion_version":"1"},"payload":{"subscription":{"id":"aa89e14c-6239-417d-8c98-217555c971ec","status":"enabled","type":"channel.ad_break.begin","version":"1","condition":{"broadcaster_user_id":"87773461"},"transp ort":{"method":"websocket","session_id":"AgoQ_sbgRImJTQO8benYbkWy5BIGY2VsbC1i"},"created_at":"2025-03-31T18:18:15.221528455Z","cost":0},"event":{"broadcaster_user_id":"87773461","broadcaster_user_login":"suici debeef","broadcaster_user_name":"suicidebeef","requester_user_id":"87773461","requester_user_login":"suicidebeef","requester_user_name":"suicidebeef","duration_seconds":90,"is_automatic":true,"started_at":"202 5-03-31T19:19:53.06543104Z"}}}
+
+
+
 ## Todos
 * Send a chat message as the bot
 * Look up the other messages that must be handled
