@@ -37,7 +37,7 @@ HAVE: client id and client secret;
 does subscription type require user authentication?
 yes -- with scopes user:read:chat and channel:bot
 
-https://id.twitch.tv/oauth2/authorize?client_id=htzvetxwhqrl84oafo8rzi25iyq3io&redirect_uri=https%3A%2F%2Flocalhost:8080&response_type=token&scope=user:read:chat%20user:write:chat%20channel:bot%20user:bot
+https://id.twitch.tv/oauth2/authorize?client_id=htzvetxwhqrl84oafo8rzi25iyq3io&redirect_uri=https%3A%2F%2Flocalhost:8080&response_type=token&scope=user:read:chat%20user:write:chat%20channel:bot%20user:bot%20channel:read:ads
 
 -----------api
 

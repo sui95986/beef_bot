@@ -1,7 +1,13 @@
 use dotenv_codegen::dotenv;
 
-pub async fn validate_oauth_token() {
-    let api_token = dotenv!("OAUTH_TOKEN");
+pub async fn validate_oauth_tokens() {
+    let bot_oauth_token = dotenv!("BOT_OAUTH_TOKEN");
+    validate_oauth_token(bot_oauth_token).await;
+    let broadcaster_oauth_token = dotenv!("BROADCASTER_OAUTH_TOKEN");
+    validate_oauth_token(broadcaster_oauth_token).await;
+}
+
+pub async fn validate_oauth_token(api_token: &str) {
     let client = reqwest::Client::new();
     let result = client
         .get("https://id.twitch.tv/oauth2/validate")

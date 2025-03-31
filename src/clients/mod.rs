@@ -1,5 +1,5 @@
 use crate::deciders::message_decider::MessageDecider;
-use crate::setup::validate_oauth_token;
+use crate::setup::validate_oauth_tokens;
 use dotenv_codegen::dotenv;
 use futures_util::StreamExt;
 use serde_json::{Value, json};
@@ -11,7 +11,8 @@ pub struct WebSocketClient {
 }
 
 pub struct TwitchApiClient {
-    api_token: String,
+    bot_oauth_token: String,
+    broadcaster_oauth_token: String,
     client_id: String,
     bot_user_id: String,
     broadcaster_id: String,
@@ -24,7 +25,7 @@ impl WebSocketClient {
     }
 
     pub async fn start(&self) {
-        validate_oauth_token().await;
+        validate_oauth_tokens().await;
         let url = "wss://eventsub.wss.twitch.tv/ws?keepalive_timeout_seconds=30"
             .into_client_request()
             .unwrap();
@@ -51,7 +52,8 @@ impl TwitchApiClient {
     pub fn new() -> TwitchApiClient {
         let client = reqwest::Client::new();
         TwitchApiClient {
-            api_token: dotenv!("OAUTH_TOKEN").to_string(),
+            bot_oauth_token: dotenv!("BOT_OAUTH_TOKEN").to_string(),
+            broadcaster_oauth_token: dotenv!("BROADCASTER_OAUTH_TOKEN").to_string(),
             client_id: dotenv!("CLIENT_ID").to_string(),
             bot_user_id: dotenv!("BOT_USER_ID").to_string(),
             broadcaster_id: dotenv!("BROADCASTER_ID").to_string(),
@@ -67,7 +69,7 @@ impl TwitchApiClient {
 
         self.reqwest_client
             .post("https://api.twitch.tv/helix/eventsub/subscriptions")
-            .bearer_auth(&self.api_token)
+            .bearer_auth(&self.broadcaster_oauth_token)
             .header("Client-Id", &self.client_id)
             .json(&request_body)
             .send()
@@ -80,7 +82,7 @@ impl TwitchApiClient {
             "version": "1",
             "condition": {
                 "broadcaster_user_id": self.broadcaster_id,
-                "user_id": self.bot_user_id,
+                "user_id": self.broadcaster_id,
             },
             "transport": {
                 "method": "websocket",
@@ -96,7 +98,7 @@ impl TwitchApiClient {
         if let Err(e) = self
             .reqwest_client
             .post("https://api.twitch.tv/helix/chat/messages")
-            .bearer_auth(&self.api_token)
+            .bearer_auth(&self.bot_oauth_token)
             .header("Client-Id", &self.client_id)
             .json(&request_body)
             .send()
@@ -111,6 +113,36 @@ impl TwitchApiClient {
             "broadcaster_id": self.broadcaster_id,
             "sender_id": self.bot_user_id,
             "message": chat_message,
+        });
+        json
+    }
+
+    pub async fn subscribe_to_ad_break_begin_events(
+        &self,
+        session_id: &Value,
+    ) -> Result<reqwest::Response, reqwest::Error> {
+        let request_body = self.get_subscribe_to_ad_break_begin_event_request_body(session_id);
+
+        self.reqwest_client
+            .post("https://api.twitch.tv/helix/eventsub/subscriptions")
+            .bearer_auth(&self.broadcaster_oauth_token)
+            .header("Client-Id", &self.client_id)
+            .json(&request_body)
+            .send()
+            .await
+    }
+
+    fn get_subscribe_to_ad_break_begin_event_request_body(&self, session_id: &Value) -> Value {
+        let json = json!({
+            "type": "channel.ad_break.begin",
+            "version": "1",
+            "condition": {
+                "broadcaster_user_id": self.broadcaster_id,
+            },
+            "transport": {
+                "method": "websocket",
+                "session_id": session_id
+            }
         });
         json
     }

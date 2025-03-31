@@ -1,17 +1,17 @@
-use crate::handlers::ChatMessageHandler;
+use crate::handlers::NotificationHandler;
 use crate::handlers::handle_unknown_message;
 use crate::handlers::handle_welcome_message;
 use serde_json::Value;
 use tungstenite::Message;
 
 pub struct MessageDecider {
-    chat_message_handler: ChatMessageHandler,
+    notification_handler: NotificationHandler,
 }
 
 impl MessageDecider {
-    pub fn new(chat_message_handler: ChatMessageHandler) -> MessageDecider {
+    pub fn new(notification_handler: NotificationHandler) -> MessageDecider {
         MessageDecider {
-            chat_message_handler,
+            notification_handler,
         }
     }
 
@@ -26,11 +26,18 @@ impl MessageDecider {
                 println!("received welcome message!");
                 handle_welcome_message(&json).await;
             } else if message_type == "notification" {
-                self.chat_message_handler.handle(&json).await;
+                let subscription_type = &json["metadata"]["subscription_type"];
+                if subscription_type == "channel.chat.message" {
+                    self.notification_handler.handle_chat_message(&json).await;
+                } else if subscription_type == "channel.ad_break.begin" {
+                    self.notification_handler.handle_ad_break_begin(&json).await;
+                } else {
+                    println!("Unknown notification type: {}", subscription_type);
+                }
             } else {
                 handle_unknown_message(&json).await;
             }
-        } else if !msg.to_string().contains("session_keepalive") {
+        } else if !msg.to_string().is_empty() {
             println!("Failed to parse incoming message into json: {}", msg);
         }
     }

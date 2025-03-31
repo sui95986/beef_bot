@@ -3,16 +3,16 @@ use serde_json::Value;
 use crate::clients::TwitchApiClient;
 use dotenv_codegen::dotenv;
 
-pub struct ChatMessageHandler {
+pub struct NotificationHandler {
     twitch_api_client: TwitchApiClient,
 }
 
-impl ChatMessageHandler {
-    pub fn new(twitch_api_client: TwitchApiClient) -> ChatMessageHandler {
-        ChatMessageHandler { twitch_api_client }
+impl NotificationHandler {
+    pub fn new(twitch_api_client: TwitchApiClient) -> NotificationHandler {
+        NotificationHandler { twitch_api_client }
     }
 
-    pub async fn handle(&self, json: &Value) {
+    pub async fn handle_chat_message(&self, json: &Value) {
         let bot_user_id = dotenv!("BOT_USER_ID");
         let event = &json["payload"]["event"];
         let chatter = event["chatter_user_name"].as_str().unwrap();
@@ -57,5 +57,12 @@ impl ChatMessageHandler {
                     .await;
             }
         }
+    }
+
+    pub async fn handle_ad_break_begin(&self, json: &Value) {
+        self.twitch_api_client
+            .send_chat_message("Ad break starting!".to_owned())
+            .await;
+        println!("{}", json);
     }
 }
