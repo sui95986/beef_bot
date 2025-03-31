@@ -1,15 +1,19 @@
 use serde_json::Value;
 
-use crate::clients::TwitchApiClient;
+use crate::{brain::Brain, clients::TwitchApiClient};
 use dotenv_codegen::dotenv;
 
 pub struct NotificationHandler {
     twitch_api_client: TwitchApiClient,
+    brain: Brain,
 }
 
 impl NotificationHandler {
-    pub fn new(twitch_api_client: TwitchApiClient) -> NotificationHandler {
-        NotificationHandler { twitch_api_client }
+    pub fn new(twitch_api_client: TwitchApiClient, brain: Brain) -> NotificationHandler {
+        NotificationHandler {
+            twitch_api_client,
+            brain,
+        }
     }
 
     pub async fn handle_chat_message(&self, json: &Value) {
@@ -52,9 +56,10 @@ impl NotificationHandler {
                     .await;
             }
             _ => {
-                self.twitch_api_client
-                    .send_chat_message("unknown command".to_string())
-                    .await;
+                let response = self.brain.respond(chatter_user_name, message).await;
+                println!("Got the response sending it over chat: {}", response);
+
+                self.twitch_api_client.send_chat_message(response).await;
             }
         }
     }
