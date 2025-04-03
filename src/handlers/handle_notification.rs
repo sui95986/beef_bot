@@ -36,10 +36,7 @@ impl NotificationHandler {
                 let message = parts.next().unwrap_or("");
                 self.handle_command(cmd, message, chatter).await;
             } else {
-                // let response = "Nothing".to_string();
-                let response = self.brain.respond(chatter, message).await;
-                // println!("Got the response sending it over chat: {}", response);
-                // self.twitch_api_client.send_chat_message(response.).await;
+                let response = self.brain.respond(chatter, message, false).await;
                 match response {
                     BrainResponse::DoNothing => {
                         println!("Bot decided to do nothing.");
@@ -77,7 +74,7 @@ impl NotificationHandler {
                     .await;
             }
             _ => {
-                let response = self.brain.respond(chatter_user_name, message).await;
+                let response = self.brain.respond(chatter_user_name, message, true).await;
 
                 match response {
                     BrainResponse::DoNothing => {

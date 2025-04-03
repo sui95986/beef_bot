@@ -2,10 +2,11 @@
 use std::{
     cell::LazyCell,
     sync::{Arc, LazyLock},
+    time::Duration,
 };
 
 use kalosm::{language::*, sound::dasp::signal::bus::Output};
-use tokio::sync::Mutex;
+use tokio::{sync::Mutex, time::timeout};
 
 #[derive(Parse, Clone)]
 pub enum BrainResponse {
@@ -15,7 +16,8 @@ pub enum BrainResponse {
 
 pub struct Brain {
     chat: Mutex<Chat<Llama>>,
-    prompt_template: String,
+    optional_response_template: String,
+    force_response_template: String,
 }
 
 impl Brain {
@@ -38,12 +40,19 @@ impl Brain {
             Its ok to make fun of everyone, in fact it is encouraged.
             Only respond when spoken to directly or when you feel its extremely appropriate to do so. Remember dont be too chatty! No one likes an annoying bot!
             REMEMBER not everyone is talking to you all the time.
-
-            You are to respond in JSON format like this:
-            { \"type\": \"DoNothing\" } or { \"type\": \"Say\", \"data\": \"Your response goes here\" }
          ".to_string();
 
-        let prompt_template = "
+        let force_response_template = "
+            You must respond to this message:
+            User: {user}
+            Message: {message}
+
+            You are to respond in JSON format like this:
+            { \"type\": \"Say\", \"data\": \"Your response goes here\" }
+        "
+        .to_string();
+
+        let optional_response_template = "
             You should only respond to this if it fits the following criteria: 1. begins with an exclamation point: ! 2. Is addressing you directly 3. Is continuing a conversation with you
 
             User: {user}
@@ -58,20 +67,44 @@ impl Brain {
 
         Brain {
             chat: Mutex::new(chat),
-            prompt_template,
+            optional_response_template,
+            force_response_template,
         }
     }
 
-    pub async fn respond(&self, user: &str, message: &str) -> BrainResponse {
-        let parser = BrainResponse::new_parser();
-        let prompt = self.prompt_template.replace("{user}", user);
-        let prompt = prompt.replace("{message}", message);
-        println!("Grabbing lock");
+    pub async fn respond(&self, user: &str, message: &str, force_response: bool) -> BrainResponse {
+        if force_response {
+            let prompt = self.force_response_template.replace("{user}", user);
+            let prompt = prompt.replace("{message}", message);
+            self.respond_using_prompt(user, message, &prompt).await
+        } else {
+            let prompt = self.optional_response_template.replace("{user}", user);
+            let prompt = prompt.replace("{message}", message);
+            self.respond_using_prompt(user, message, &prompt).await
+        }
+    }
+
+    async fn respond_using_prompt(
+        &self,
+        user: &str,
+        message: &str,
+        prompt: &String,
+    ) -> BrainResponse {
         let mut chat = self.chat.lock().await;
+        let parser = BrainResponse::new_parser();
         let output_stream = chat.add_message(prompt).with_constraints(parser);
-        println!("unwrapping output");
-        let result = output_stream.await.unwrap();
-        println!("Releasing lock");
-        result
+        let result = timeout(Duration::from_secs(15), output_stream).await;
+
+        match result {
+            Ok(Ok(parsed)) => parsed,
+            Ok(Err(e)) => {
+                eprintln!("Parser error: {:?}", e);
+                BrainResponse::DoNothing
+            }
+            Err(_) => {
+                eprintln!("Timeout! Model took too long to process, GPU overloaded?");
+                BrainResponse::DoNothing
+            }
+        }
     }
 }
