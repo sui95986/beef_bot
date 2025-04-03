@@ -1,8 +1,11 @@
+use std::{sync::Arc, time::Duration};
+
 use crate::deciders::message_decider::MessageDecider;
 use crate::setup::validate_oauth_tokens;
 use dotenv_codegen::dotenv;
 use futures_util::StreamExt;
 use serde_json::{Value, json};
+use tokio::time::sleep;
 use tokio_tungstenite::connect_async;
 use tungstenite::client::IntoClientRequest;
 
@@ -90,6 +93,14 @@ impl TwitchApiClient {
             }
         });
         json
+    }
+
+    pub fn schedule_message_after(self: Arc<Self>, seconds: u64, message: impl Into<String>) {
+        let msg = message.into();
+        tokio::spawn(async move {
+            sleep(Duration::from_secs(seconds)).await;
+            self.send_chat_message(msg).await;
+        });
     }
 
     pub async fn send_chat_message(&self, arg: String) {

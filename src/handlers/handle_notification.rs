@@ -1,15 +1,20 @@
+use std::sync::Arc;
+
 use serde_json::Value;
 
-use crate::{brain::Brain, clients::TwitchApiClient};
+use crate::{
+    brain::{Brain, BrainResponse},
+    clients::TwitchApiClient,
+};
 use dotenv_codegen::dotenv;
 
 pub struct NotificationHandler {
-    twitch_api_client: TwitchApiClient,
+    twitch_api_client: Arc<TwitchApiClient>,
     brain: Brain,
 }
 
 impl NotificationHandler {
-    pub fn new(twitch_api_client: TwitchApiClient, brain: Brain) -> NotificationHandler {
+    pub fn new(twitch_api_client: Arc<TwitchApiClient>, brain: Brain) -> NotificationHandler {
         NotificationHandler {
             twitch_api_client,
             brain,
@@ -31,10 +36,19 @@ impl NotificationHandler {
                 let message = parts.next().unwrap_or("");
                 self.handle_command(cmd, message, chatter).await;
             } else {
-                let response = "Nothing".to_string();
-                // let response = self.brain.respond(chatter, message).await;
-                println!("Got the response sending it over chat: {}", response);
-                // self.twitch_api_client.send_chat_message(response).await;
+                // let response = "Nothing".to_string();
+                let response = self.brain.respond(chatter, message).await;
+                // println!("Got the response sending it over chat: {}", response);
+                // self.twitch_api_client.send_chat_message(response.).await;
+                match response {
+                    BrainResponse::DoNothing => {
+                        println!("Bot decided to do nothing.");
+                    }
+                    BrainResponse::Say(message) => {
+                        println!("Got the response sending it over chat: {}", message);
+                        self.twitch_api_client.send_chat_message(message).await;
+                    }
+                }
             }
         };
     }
@@ -64,18 +78,28 @@ impl NotificationHandler {
             }
             _ => {
                 let response = self.brain.respond(chatter_user_name, message).await;
-                println!("Got the response sending it over chat: {}", response);
 
-                self.twitch_api_client.send_chat_message(response).await;
+                match response {
+                    BrainResponse::DoNothing => {
+                        println!("Bot decided to do nothing.");
+                    }
+                    BrainResponse::Say(message) => {
+                        println!("Got the response sending it over chat: {}", message);
+                        self.twitch_api_client.send_chat_message(message).await;
+                    }
+                }
             }
         }
     }
 
     pub async fn handle_ad_break_begin(&self, json: &Value) {
-        let duration = &json["payload"]["event"]["duration_seconds"];
-        self.twitch_api_client
-            .send_chat_message(format!("{} second ad break starting!", duration))
-            .await;
-        println!("{}", json);
+        if let Some(duration) = json["payload"]["event"]["duration_seconds"].as_u64() {
+            self.twitch_api_client
+                .send_chat_message(format!("{} second ad break starting!", duration))
+                .await;
+            println!("{}", json);
+            Arc::clone(&self.twitch_api_client)
+                .schedule_message_after(duration, "Ad break complete");
+        };
     }
 }
