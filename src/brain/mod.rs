@@ -1,6 +1,7 @@
 #![allow(unused)]
 use std::{
     cell::LazyCell,
+    ops::Deref,
     sync::{Arc, LazyLock},
     time::Duration,
 };
@@ -15,7 +16,8 @@ pub enum BrainResponse {
 }
 
 pub struct Brain {
-    chat: Mutex<Chat<Llama>>,
+    chat: Mutex<Option<Chat<Llama>>>,
+    system_prompt: String,
     optional_response_template: String,
     force_response_template: String,
 }
@@ -63,13 +65,22 @@ impl Brain {
         "
         .to_string();
         let model = Llama::new_chat().await.unwrap();
-        let chat = model.chat().with_system_prompt(system_prompt);
+        let chat = model.chat().with_system_prompt(&system_prompt);
 
         Brain {
-            chat: Mutex::new(chat),
+            chat: Mutex::new(Some(chat)),
+            system_prompt,
             optional_response_template,
             force_response_template,
         }
+    }
+
+    async fn clear_chat_history(&self) {
+        let mut chat_mutex_guard = self.chat.lock().await;
+        *chat_mutex_guard = None;
+        let model = Llama::new_chat().await.unwrap();
+        let chat = model.chat().with_system_prompt(&self.system_prompt);
+        *chat_mutex_guard = Some(chat);
     }
 
     pub async fn respond(&self, user: &str, message: &str, force_response: bool) -> BrainResponse {
@@ -90,9 +101,27 @@ impl Brain {
         message: &str,
         prompt: &String,
     ) -> BrainResponse {
+        let should_clear_history = {
+            let mutex_optional = self.chat.lock().await;
+            let chat = mutex_optional.as_ref().unwrap();
+            let session = chat.session().unwrap();
+            let history = session.history();
+            println!("History length: {}", history.len());
+            history.len() > 20
+        };
+
+        if should_clear_history {
+            println!("Clearing chat history");
+            self.clear_chat_history().await;
+        }
+
         let mut chat = self.chat.lock().await;
         let parser = BrainResponse::new_parser();
-        let output_stream = chat.add_message(prompt).with_constraints(parser);
+        let output_stream = chat
+            .as_mut()
+            .unwrap()
+            .add_message(prompt)
+            .with_constraints(parser);
         let result = timeout(Duration::from_secs(15), output_stream).await;
 
         match result {
