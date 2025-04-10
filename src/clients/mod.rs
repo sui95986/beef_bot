@@ -104,7 +104,7 @@ impl TwitchApiClient {
     }
 
     pub async fn send_chat_message(&self, arg: String) {
-        println!("Sending chat message: {}", arg);
+        println!("beef__bot: {}", arg);
         let request_body = self.get_send_chat_message_request_body(arg);
         if let Err(e) = self
             .reqwest_client

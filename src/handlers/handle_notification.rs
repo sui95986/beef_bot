@@ -27,8 +27,8 @@ impl NotificationHandler {
         let chatter = event["chatter_user_name"].as_str().unwrap();
         let chatter_user_id = event["chatter_user_id"].as_str().unwrap();
         let message = event["message"]["text"].as_str().unwrap();
-        println!("{}: {}", chatter, message);
         if chatter_user_id != bot_user_id {
+            println!("{}: {}", chatter, message);
             if message.starts_with("!") {
                 let string_message = String::from(message);
                 let mut parts = string_message.splitn(2, " ");
@@ -94,7 +94,6 @@ impl NotificationHandler {
             self.twitch_api_client
                 .send_chat_message(format!("{} second ad break starting!", duration))
                 .await;
-            println!("{}", json);
             Arc::clone(&self.twitch_api_client)
                 .schedule_message_after(duration, "Ad break complete");
         };
