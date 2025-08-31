@@ -2,7 +2,7 @@ use crate::handlers::NotificationHandler;
 use crate::handlers::handle_unknown_message;
 use crate::handlers::handle_welcome_message;
 use serde_json::Value;
-use tungstenite::Message;
+use tokio_tungstenite::tungstenite::Message;
 
 pub struct MessageDecider {
     notification_handler: NotificationHandler,
